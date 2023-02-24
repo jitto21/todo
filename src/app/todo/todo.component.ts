@@ -1,4 +1,9 @@
 import { Component, OnInit } from '@angular/core';
+import { MatSnackBar, MatSnackBarRef, TextOnlySnackBar } from '@angular/material/snack-bar';
+import { Store } from '@ngrx/store';
+import { createTodo, deleteTodo, toggleTodo } from '../store/actions/todo.action';
+import { AppState, selectTodo, selectUI } from '../store/app.state';
+import { TodoState } from '../store/reducers/todo.reducer';
 
 @Component({
   selector: 'app-todo',
@@ -6,29 +11,36 @@ import { Component, OnInit } from '@angular/core';
   styleUrls: ['./todo.component.scss']
 })
 export class TodoComponent implements OnInit {
-  public tasks: Todo[] = [];
+  public todos: TodoState[] = [];
 
-  constructor() {
+  constructor(private store: Store<AppState>, private _snackBar: MatSnackBar) {
   }
 
   ngOnInit(): void {
-    this.tasks = [];
+    this.store.select(selectTodo).subscribe(todoState => {
+      this.todos = todoState ?? [];
+    });
+    this.store.select(selectUI).subscribe(({ errorMsg }) => {
+      if (errorMsg !== null) {
+        return this.openSnackBar(errorMsg, 'OK');
+      }
+      this._snackBar.dismiss();
+    })
   }
 
   addTask(task: string) {
-    if (task === "") return;
-    this.tasks.push({
-      text: task,
-      done: false
-    });
+    this.store.dispatch(createTodo(task));
   }
-  removeTask(task: Todo) {
-    const taskIndex = this.tasks.indexOf(task);
-    if(taskIndex <= -1) return;
-    this.tasks.splice(taskIndex, 1);
+  removeTask(id: string) {
+    this.store.dispatch(deleteTodo(id))
   }
-  toggle(task: Todo) {
-    task.done = !task.done;
+  toggle(id: string) {
+   // task.done = !task.done;
+    this.store.dispatch(toggleTodo(id))
+  }
+
+  openSnackBar(message: string, action: string) {
+    this._snackBar.open(message, action);
   }
 }
 
